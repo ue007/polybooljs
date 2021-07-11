@@ -9,9 +9,17 @@
 		<script type="text/javascript" src="./libs/Vec2.js"></script>
 		<script type="text/javascript" src="./libs/Intersection.js"></script>
 		<script type="text/javascript" src="./datas/crosswall.js"></script>
+		<script type="text/javascript" src="./datas/room.js"></script>
+		<script type="text/javascript" src="./top.js"></script>
 		<script type="text/javascript" src="./wall.js"></script>
 		<script>
 			let ControlOptions = function () {
+				this.basic = {
+					visible: true,
+				};
+				this.preprocessing = {
+					visible: false,
+				};
 				this.draw = {
 					union: false,
 					difference: false,
@@ -19,9 +27,10 @@
 					xor: false,
 					intersect: false,
 				};
-				this.walldatas = {
-					d2: false,
-					d3: false,
+				this.shapes = {
+					"d2-shape1": false,
+					"d3-top": false,
+					"d3-side": false,
 				};
 				this.message = "dat.gui";
 				this.speed = 0.8;
@@ -30,8 +39,9 @@
 			};
 
 			let controlOptions = (window.controlOptions = new ControlOptions());
-			var box = (window.box = new twaver.ElementBox());
-			var network = new twaver.vector.Network(box);
+			let box = (window.box = new twaver.ElementBox());
+			let network = new twaver.vector.Network(box);
+			let wallBox = [];
 
 			function init() {
 				initNetwork();
@@ -53,6 +63,10 @@
 				twaver.Styles.setStyle("select.color", "#57ab9a");
 				network.setTransparentSelectionEnable(true);
 				network.setEditInteractions(true);
+				network.getSelectionModel().setFilterFunction((data) => {
+					return !(data instanceof twaver.Wall);
+				});
+				network.getView().style.backgroundColor = "#cdcdcd";
 				network.getView().addEventListener("mousemove", function (e) {
 					var node = network.getElementAt(e);
 					if (node instanceof twaver.ShapeNode) {
@@ -64,10 +78,13 @@
 			}
 
 			function initDataBox() {
-				let origindata = crosswall;
+				let origindata = crosswall; //  十字相交测试数据
+				// origindata = room; // 整个room图纸测试数据
 				let wallsdata = origindata.known.walls;
 				wallsdata.forEach((wall, index) => {
 					let data = new twaver.Wall(index, wall);
+					wallBox.push(data);
+					data.setMovable(false);
 					box.add(data);
 					if (data.group) {
 						box.add(data.group);
@@ -82,11 +99,17 @@
 						return node instanceof twaver.Wall;
 					})
 					.toArray();
-				console.log(allwalls);
 
 				allwalls.forEach((walli, idi) => {
-					if (idi !== 1) return;
+					// if (idi !== 1) return;
 					if (idi === 73 || idi === 74 || idi === 112) {
+						let node = box.getDataById(idi);
+						var alarm = new twaver.Alarm(
+							"alarm" + idi,
+							idi,
+							twaver.AlarmSeverity.CRITICAL
+						);
+						box.getAlarmBox().add(alarm);
 					} else {
 						let walls = [];
 						allwalls.forEach((wallj, idj) => {
@@ -96,17 +119,25 @@
 								idi !== idj
 							) {
 								let intersection = walli.intersection(wallj);
-								if (intersection) {
-									console.log("wall" + idi, "wall" + idj);
-									// walli.boolwall(wallj);
-									!wallj._isbool && walls.push(wallj);
-									walli.addNeighbor(wallj);
+								if (intersection.status === "Intersection") {
+									console.log(
+										"intersection: " + "wall" + idi,
+										"wall" + idj + intersection.status2
+									);
+									walls.push(wallj);
+									// !walli.isBooled(wallj) && walls.push(wallj);
+								} else {
+									console.log(
+										"intersection: " + "wall" + idi,
+										"wall" + idj + intersection.status
+									);
 								}
 							}
 						});
-						console.log(walls);
 						walli.boolwalls(walls);
 						walli.drawBool(box);
+						walli.generate2DShape();
+						walli.generate3DShape();
 						walli.getNeighbors();
 					}
 				});
@@ -114,17 +145,83 @@
 
 			function initGUI() {
 				let gui = new dat.GUI();
+				let basicFolder = gui.addFolder("Basic");
+				basicFolder
+					.add(controlOptions.basic, "visible")
+					.onChange((v) => {
+						console.log(v);
+						wallBox.forEach((wall) => {
+							wall.setVisible(v);
+						});
+					});
+				basicFolder.open();
+
+				let preFolder = gui.addFolder("Preprocessing");
+				preFolder
+					.add(controlOptions.preprocessing, "visible")
+					.onChange((v) => {
+						wallBox.forEach((wall) => {
+							wall.setControl(controlOptions);
+						});
+					});
+				preFolder.open();
+
 				let drawFolder = gui.addFolder("Draw Control");
-				drawFolder.add(controlOptions.draw, "intersect");
-				drawFolder.add(controlOptions.draw, "difference");
-				drawFolder.add(controlOptions.draw, "differenceRev");
-				drawFolder.add(controlOptions.draw, "union");
-				drawFolder.add(controlOptions.draw, "xor");
+				drawFolder
+					.add(controlOptions.draw, "intersect")
+					.onChange((v) => {
+						wallBox.forEach((wall) => {
+							wall.setControl(controlOptions);
+						});
+					});
+				drawFolder
+					.add(controlOptions.draw, "difference")
+					.onChange((v) => {
+						wallBox.forEach((wall) => {
+							wall.setControl(controlOptions);
+						});
+					});
+				drawFolder
+					.add(controlOptions.draw, "differenceRev")
+					.onChange((v) => {
+						wallBox.forEach((wall) => {
+							wall.setControl(controlOptions);
+						});
+					});
+				drawFolder.add(controlOptions.draw, "union").onChange((v) => {
+					wallBox.forEach((wall) => {
+						wall.setControl(controlOptions);
+					});
+				});
+				drawFolder.add(controlOptions.draw, "xor").onChange((v) => {
+					wallBox.forEach((wall) => {
+						wall.setControl(controlOptions);
+					});
+				});
 				drawFolder.open();
 
 				let wallFolder = gui.addFolder("Wall Datas");
-				wallFolder.add(controlOptions.walldatas, "d2");
-				wallFolder.add(controlOptions.walldatas, "d3");
+				wallFolder
+					.add(controlOptions.shapes, "d2-shape1")
+					.onChange((v) => {
+						wallBox.forEach((wall) => {
+							wall.setControl(controlOptions);
+						});
+					});
+				wallFolder
+					.add(controlOptions.shapes, "d3-top")
+					.onChange((v) => {
+						wallBox.forEach((wall) => {
+							wall.setControl(controlOptions);
+						});
+					});
+				wallFolder
+					.add(controlOptions.shapes, "d3-side")
+					.onChange((v) => {
+						wallBox.forEach((wall) => {
+							wall.setControl(controlOptions);
+						});
+					});
 				wallFolder.open();
 			}
 		</script>

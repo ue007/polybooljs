@@ -1,33 +1,47 @@
 twaver.Wall = function (id, wall) {
-	this._scaleX = 0.1;
-	this._scaleY = 0.1;
+	this._scaleX = 0.05;
+	this._scaleY = 0.05;
 	this._isbool = false;
 	this.neighbor = null;
 	this.neighbors = new Map();
 	this.bools = {};
+	this.boolMap = new Map();
+	this.shapes = {
+		d2: {
+			shape1: null,
+		},
+		d3: {
+			top: null,
+			side: null,
+		},
+	};
+	this.preprocessingNodes = {
+		crossEndPoint: null,
+	};
 
 	twaver.Wall.superClass.constructor.call(this, id);
 
 	// debug container
-	/* let group = (this.group = new twaver.Group("Group " + id));
-	group.s({
-		"group.shape": "roundrect",
-		"group.shape.roundrect.radius": 0,
-		"group.fill": false,
-		"group.deep": 10,
-		"group.fill.color": "rgba(100,0,0,0.1)",
-		"group.outline.width": 1,
-		"group.outline.color": "#6F6F6F",
-	});
-	this.group.setLayerId(this._id);
-	this.group.setExpanded(true);
-	this.group.addChild(this); */
-
+	// let group = (this.group = new twaver.Group("Group " + id));
+	// group.s({
+	// 	"group.shape": "roundrect",
+	// 	"group.shape.roundrect.radius": 0,
+	// 	"group.fill": false,
+	// 	"group.deep": 10,
+	// 	"group.fill.color": "rgba(100,0,0,0.1)",
+	// 	"group.outline.width": 1,
+	// 	"group.outline.color": "#6F6F6F",
+	// });
+	// this.group.setLayerId(0);
+	// this.group.setExpanded(true);
+	// this.group.addChild(this);
+	this.setLayerId(0);
 	this.wall = wall;
 	this.originData = {
 		p1: wall.coordinates[0],
 		p2: wall.coordinates[1],
 		width: wall.width,
+		obb: [],
 	};
 	this._obb();
 	let points = new twaver.List();
@@ -36,7 +50,12 @@ twaver.Wall = function (id, wall) {
 			x: data.x,
 			y: data.y,
 		});
+		this.originData.obb.push({
+			x: data.x,
+			y: data.y,
+		});
 	});
+
 	this.setPoints(points);
 	this.s("vector.fill.color", "rgba(0,0,0,0.0)");
 	this.s("vector.outline.width", 1);
@@ -195,47 +214,324 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 		this.poly = poly;
 		this.regions = regions;
 	},
-	// 预处理
-	preprocessing() {
+	updatePolyData() {
+		let poly = {
+			regions: [],
+			inverted: false,
+			id: this._id,
+		};
+		let regions = [];
+		this._obbpoints.forEach((obb) => {
+			regions.push([obb.x, obb.y]);
+		});
+		poly.regions.push(regions);
+		this.poly = poly;
+		this.regions = regions;
+	},
+	/**
+	 * 预处理数据
+	 * 1. 直角断点相交
+	 * @param {*} intersection
+	 */
+	preprocessing(intersection) {
 		let neighbor = this.neighbor;
-		let obbpoints = this._obbpoints;
-		let obbpoints2 = neighbor._obbpoints;
-		/**
-		 * 1. 角点在内部的时候，直接使用2d原始几何数据
-		 * 2. 十字相交的时候，直接打断  -->
-		 * */
+		let obbpoints = [];
+		let obbpoints2 = [];
+		this.originData.obb.forEach((o) => {
+			obbpoints.push({ x: o.x, y: o.y });
+		});
+		neighbor.originData.obb.forEach((o) => {
+			obbpoints2.push({ x: o.x, y: o.y });
+		});
+
+		let unionpoints = new twaver.List();
+		unionpoints.addAll(obbpoints);
+		unionpoints.addAll(obbpoints2);
+		let bounds1 = _twaver.math.getLineRect(obbpoints);
+		let bounds2 = _twaver.math.getLineRect(obbpoints2);
+		let unionBounds = _twaver.math.getLineRect(unionpoints);
+		let intersectionPoints = intersection.points;
+		let center1 = this.getCenterLocation(),
+			center2 = this.neighbor.getCenterLocation();
+		let vector1 = new THREE.Vector2(
+			this.originData.p1[0] - this.originData.p2[0],
+			this.originData.p1[1] - this.originData.p2[1]
+		);
+		let vector2 = new THREE.Vector2(
+			neighbor.originData.p1[0] - neighbor.originData.p2[0],
+			neighbor.originData.p1[1] - neighbor.originData.p2[1]
+		);
+		if (this.neighbors.get(this._id + "-" + neighbor._id)) return;
+
+		if (intersectionPoints.length === 2 && vector1.dot(vector2) === 0) {
+			let isInners = new Map();
+			let polygon = this._points;
+			intersectionPoints.forEach((p, index) => {
+				let isInner = _twaver.math.isPointInPolygon(polygon, {
+					x: center1.x > center2.x ? parseInt(p.x) : p.x,
+					y: center2.y > center1.y ? parseInt(p.y) : p.y,
+				});
+				isInners.set(index, isInner ? 1 : -1);
+			});
+
+			if (isInners.get(0) * isInners.get(1) > 0) {
+				if (isInners.get(0) < 0) {
+					intersection.status2 = "十字外接相交";
+				} else {
+					intersection.status2 = "十字内部相交";
+				}
+			} else if (isInners.get(0) * isInners.get(1) < 0) {
+				intersection.status2 = "crossEndPoint";
+				if (center1.x < center2.x && center2.y < center1.y) {
+					intersection.status2 = "crossEndPoint->右侧->上方";
+				} else if (center1.x < center2.x && center2.y > center1.y) {
+					intersection.status2 = "crossEndPoint->右侧->下方";
+				} else if (center1.x > center2.x && center2.y < center1.y) {
+					intersection.status2 = "crossEndPoint->左侧->上方";
+				} else if (center1.x > center2.x && center2.y > center1.y) {
+					intersection.status2 = "crossEndPoint->左侧->下方";
+				}
+			}
+
+			if (intersection.status2 === "crossEndPoint->右侧->上方") {
+				obbpoints.forEach((p) => {
+					if (p.x > center1.x) {
+						p.x = unionBounds.x + unionBounds.width;
+					}
+				});
+				// 右侧上方
+				if (center2.y < center1.x) {
+					obbpoints2.forEach((p) => {
+						if (p.y > center2.y) {
+							p.y =
+								unionBounds.y +
+								unionBounds.height -
+								bounds1.height;
+						}
+					});
+				}
+				// this._obbpoints = obbpoints;
+				// this.updatePolyData();
+				// neighbor._obbpoints = obbpoints2;
+				// neighbor.updatePolyData();
+			} else if (intersection.status2 === "crossEndPoint->右侧->下方") {
+				obbpoints.forEach((p) => {
+					if (p.x > center1.x) {
+						p.x = unionBounds.x + unionBounds.width;
+					}
+				});
+				// 右侧下方
+				if (center2.y > center1.x) {
+					obbpoints2.forEach((p) => {
+						if (p.y < center2.y) {
+							p.y = unionBounds.y + bounds1.height;
+						}
+					});
+				}
+				// this._obbpoints = obbpoints;
+				// this.updatePolyData();
+				// neighbor._obbpoints = obbpoints2;
+				// neighbor.updatePolyData();
+			} else if (intersection.status2 === "crossEndPoint->左侧->上方") {
+				// 需要考虑精度问题
+				obbpoints.forEach((p) => {
+					if (p.x < center1.x) {
+						p.x = unionBounds.x;
+					}
+				});
+				// 右侧上方
+				if (center2.y < center1.x) {
+					obbpoints2.forEach((p) => {
+						if (p.y > center2.y) {
+							p.y =
+								unionBounds.y +
+								unionBounds.height -
+								bounds1.height;
+						}
+					});
+				}
+				// this._obbpoints = obbpoints;
+				// this.updatePolyData();
+				// neighbor._obbpoints = obbpoints2;
+				// neighbor.updatePolyData();
+			} else if (intersection.status2 === "crossEndPoint->左侧->下方") {
+				// 需要考虑精度问题
+				obbpoints.forEach((p) => {
+					if (p.x < center1.x) {
+						p.x = unionBounds.x;
+					}
+				});
+				// 右侧下方
+				if (center2.y > center1.x) {
+					obbpoints2.forEach((p) => {
+						if (p.y < center2.y) {
+							p.y = unionBounds.y + bounds1.height;
+						}
+					});
+				}
+				// this._obbpoints = obbpoints;
+				// this.updatePolyData();
+				// neighbor._obbpoints = obbpoints2;
+				// neighbor.updatePolyData();
+			} else if (intersection.status2 === "十字内部相交->左侧") {
+			}
+
+			/** debug */
+			if (!this.preprocessingNodes["crossEndPoint"]) {
+				this.preprocessingNodes["crossEndPoint"] =
+					new twaver.ShapeNode();
+				this.preprocessingNodes["crossEndPoint"].setName(
+					this._id + ":preprocessing"
+				);
+				let list = new twaver.List();
+				list.addAll(obbpoints);
+				this.preprocessingNodes["crossEndPoint"].setPoints(list);
+				this.preprocessingNodes["crossEndPoint"].s(
+					"vector.fill.color",
+					"rgba(255,153,0,0.1)"
+				);
+				this.preprocessingNodes["crossEndPoint"].s(
+					"vector.outline.width",
+					1
+				);
+				this.preprocessingNodes["crossEndPoint"].s(
+					"vector.outline.color",
+					"rgba(255,153,0,1.0)"
+				);
+				this.preprocessingNodes["crossEndPoint"].s(
+					"label.position",
+					"center"
+				);
+				this.preprocessingNodes["crossEndPoint"].s(
+					"shapenode.closed",
+					true
+				);
+				this.preprocessingNodes["crossEndPoint"].s(
+					"body.type",
+					"default"
+				);
+				this.preprocessingNodes["crossEndPoint"].setVisible(false);
+				this.preprocessingNodes["crossEndPoint"].setLayerId(2);
+				box.add(this.preprocessingNodes["crossEndPoint"]);
+			} else {
+				let points =
+					this.preprocessingNodes["crossEndPoint"].getPoints();
+				let poly1 = {
+					regions: [],
+					inverted: false,
+					id: this._id,
+				};
+				let regions = [];
+				points.forEach((obb) => {
+					regions.push([obb.x, obb.y]);
+				});
+				poly1.regions.push(regions);
+
+				let poly2 = {
+					regions: [],
+					inverted: false,
+					id: this._id,
+				};
+				let regions2 = [];
+				obbpoints.forEach((obb) => {
+					regions2.push([obb.x, obb.y]);
+				});
+				poly2.regions.push(regions2);
+
+				let result = PolyBool.union(poly1, poly2);
+				let ppp = new twaver.List();
+				result.regions[0].forEach((r) => {
+					ppp.add({ x: r[0], y: r[1] });
+				});
+				this.preprocessingNodes["crossEndPoint"].setPoints(ppp);
+			}
+			this._obbpoints =
+				this.preprocessingNodes["crossEndPoint"].getPoints();
+			this.updatePolyData();
+			// neighbor._obbpoints =
+			// 	neighbor.preprocessingNodes["crossEndPoint"].getPoints();
+			// neighbor.updatePolyData();
+			// let child = new twaver.ShapeNode();
+			// child.setName(this._id + ":preprocessing");
+			// let list = new twaver.List();
+			// list.addAll(obbpoints);
+			// child.setPoints(list);
+			// child.s("vector.fill.color", "rgba(255,153,0,0.1)");
+			// child.s("vector.outline.width", 1);
+			// child.s("vector.outline.color", "rgba(255,153,0,1.0)");
+			// child.s("label.position", "center");
+			// child.s("shapenode.closed", true);
+			// child.s("body.type", "default");
+			// child.setLayerId(2);
+			// box.add(child);
+			// this.preprocessingNodes["crossEndPoint"].addChild(child);
+			// this.group && this.group.addChild(this.preprocessingNodes);
+			// this.preprocessingNodes["crossEndPoint"] &&
+			// 	this.preprocessingNodes["crossEndPoint"]
+			// 		.toChildren()
+			// 		.forEach((child) => {
+			// 			child.setVisible(false);
+			// 		});
+
+			// let child2 = new twaver.ShapeNode();
+			// child2.setName(neighbor._id + ":preprocessing");
+			// let list2 = new twaver.List();
+			// list2.addAll(obbpoints2);
+			// child2.setPoints(list2);
+			// child2.s("vector.fill.color", "rgba(255,153,0,0.1)");
+			// child2.s("vector.outline.width", 1);
+			// child2.s("vector.outline.color", "rgba(255,153,0,1.0)");
+			// child2.s("label.position", "center");
+			// child2.s("shapenode.closed", true);
+			// child2.s("body.type", "default");
+			// child2.setVisible(false);
+			// box.add(child2);
+			// child2.setLayerId(2);
+			// if (!neighbor.preprocessingNodes["crossEndPoint"]) {
+			// 	neighbor.preprocessingNodes["crossEndPoint"] =
+			// 		new twaver.Dummy();
+			// }
+			// neighbor.preprocessingNodes["crossEndPoint"].addChild(child2);
+		} else if (intersectionPoints.length === 4) {
+			intersection.status2 = "十字交叉相交";
+		}
 	},
 	// 后处理
-	postprocessing() {},
+	postprocessing(wall) {},
 
 	/**
 	 * 相交判断
 	 * @param {}} wall
 	 * @returns
 	 */
-	intersection(wall) {
-		this.neighbor = wall;
-		let obb1 = this._obbpoints;
-		let obb2 = wall._obbpoints;
+	intersection(neighbor) {
+		this.neighbor = neighbor;
+		let obb1 = this.originData.obb;
+		let obb2 = neighbor.originData.obb;
 		let intersection = $Intersection.intersectPolygonPolygon(obb1, obb2);
+
 		if (intersection.status === "Intersection") {
-			this.preprocessing();
+			this.preprocessing(intersection);
+			this.addNeighbor(neighbor);
+			neighbor.addNeighbor(this);
 		}
-		return intersection.status === "Intersection";
+		return intersection;
 	},
 
 	/**
 	 *
 	 */
 	addNeighbor(neighbor) {
-		this.neighbors.set(neighbor._id, neighbor);
+		this.neighbors.set(this._id + "-" + neighbor._id, neighbor);
 	},
 
 	getNeighbors() {
 		console.log(this.neighbors);
 		return this.neighbors;
 	},
-
+	isBooled(neighbor) {
+		return !!this.neighbors.get(this._id + "-" + neighbor._id);
+	},
 	/**
 	 * 做bool运算： wall
 	 */
@@ -264,12 +560,12 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 			poly.regions.push(wall.regions);
 		});
 		if (poly.regions.length === 0) return;
+
 		this.booldatas.intersect = PolyBool.intersect(this.poly, poly);
 		this.booldatas.union = PolyBool.union(this.poly, poly);
 		this.booldatas.difference = PolyBool.difference(this.poly, poly);
 		this.booldatas.differenceRev = PolyBool.differenceRev(this.poly, poly);
 		this.booldatas.xor = PolyBool.xor(this.poly, poly);
-		console.log(this.booldatas);
 		this._isbool = true;
 	},
 
@@ -281,12 +577,199 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 	 * 4. 垂直端点相交：需要预处理
 	 * 5. 倾斜相交：
 	 */
-	get2DPoints() {},
+	generate2DShape() {
+		// shape1
+		this.shapes.d2.shape1 = new twaver.Dummy();
+		let difference =
+			this.booldatas.difference && this.booldatas.difference.regions;
+		if (difference) {
+			difference.forEach((un, index) => {
+				let child = new twaver.ShapeNode();
+				child.setName(this._id + "-" + index + ":d2-shape1");
+				let points = new twaver.List();
+				un.forEach((u) => {
+					points.add({
+						x: u[0],
+						y: u[1],
+					});
+				});
+				if (points.size() > 4) {
+					// points = this.postprocessing2d(points);
+				}
+				child.setPoints(points);
+				child.s("vector.fill.color", "rgba(152,0,102,0.1)");
+				child.s("vector.outline.width", 1);
+				child.s("vector.outline.color", "rgba(152,0,102,1.0)");
+				child.s("label.position", "center");
+				child.s("shapenode.closed", true);
+				child.s("body.type", "default");
+				box.add(child);
+				child.setLayerId(1);
+				this.shapes.d2.shape1.addChild(child);
+				this.group && this.group.addChild(this.shapes.d2.shape1);
+			});
+		} else {
+			let child = new twaver.ShapeNode();
+			child.setName(this._id + ":d2-shape1");
+			let points = this._points;
+			child.setPoints(points);
+			child.s("vector.fill.color", "rgba(152,0,102,0.1)");
+			child.s("vector.outline.width", 1);
+			child.s("vector.outline.color", "rgba(152,0,102,1.0)");
+			child.s("label.position", "center");
+			child.s("shapenode.closed", true);
+			child.s("body.type", "default");
+			box.add(child);
+			child.setLayerId(1);
+			this.shapes.d2.shape1.addChild(child);
+			this.group && this.group.addChild(this.shapes.d2.shape1);
+		}
 
+		this.shapes.d2.shape1.toChildren().forEach((child) => {
+			child.setVisible(false);
+		});
+	},
+
+	/**
+	 * 2D图纸数据的后期处理, 需要持续优化
+	 * @param {*} points
+	 */
+	postprocessing2d(points) {
+		let pp = new twaver.List();
+		let ppp = new twaver.List();
+		let pppp = new twaver.List();
+		let size = points.size();
+		points.toArray().forEach((point, index) => {
+			pp.add({
+				x: point.x,
+				y: point.y,
+				index: index,
+			});
+		});
+		pp.sort((a, b) => {
+			return a.x - b.x;
+		});
+		pp.toArray().forEach((p, index) => {
+			if (
+				index === 0 ||
+				index === 1 ||
+				index === size - 1 ||
+				index === size - 2
+			) {
+				ppp.set(p.index, points.get(p.index));
+			}
+		});
+		ppp.toArray().forEach((p) => {
+			pppp.add(p);
+		});
+
+		console.log("sort:", points, pp, pppp);
+		return pppp;
+	},
+
+	/**
+	 * 导出2D的墙体信息
+	 */
+	to2DJson() {},
 	/**
 	 * union 数据
 	 */
-	get3DPoints() {},
+	generate3DShape() {
+		// side
+		this.shapes.d3.top = new twaver.Dummy();
+		let union = this.booldatas.union && this.booldatas.union.regions;
+		if (union) {
+			union.forEach((un, index) => {
+				let child = new twaver.Top();
+				child.setName(this._id + "-" + index + ":d3-top");
+				let points = new twaver.List();
+				un.forEach((u) => {
+					points.add({
+						x: u[0],
+						y: u[1],
+					});
+				});
+				child.setPoints(points);
+				child.s("vector.fill.color", "rgba(0,255,255,0.1)");
+				child.s("vector.outline.width", 1);
+				child.s("vector.outline.color", "rgba(0,255,255,1.0)");
+				child.s("label.position", "center");
+				child.s("shapenode.closed", true);
+				child.s("body.type", "default");
+				box.add(child);
+				child.setLayerId(1);
+				this.shapes.d3.top.addChild(child);
+				this.group && this.group.addChild(this.shapes.d3.top);
+			});
+		} else {
+			let child = new twaver.Top();
+			child.setName(this._id + ":d3-top");
+			let points = this._points;
+			child.setPoints(points);
+			child.s("vector.fill.color", "rgba(0,255,255,0.1)");
+			child.s("vector.outline.width", 1);
+			child.s("vector.outline.color", "rgba(0,255,255,1.0)");
+			child.s("label.position", "center");
+			child.s("shapenode.closed", true);
+			child.s("body.type", "default");
+			box.add(child);
+			child.setLayerId(1);
+			this.shapes.d3.top.addChild(child);
+			this.group && this.group.addChild(this.shapes.d3.top);
+		}
+
+		this.shapes.d3.top.toChildren().forEach((child) => {
+			child.setVisible(false);
+		});
+
+		// side
+		this.shapes.d3.side = new twaver.Dummy();
+		let difference =
+			this.booldatas.difference && this.booldatas.difference.regions;
+		if (difference) {
+			difference.forEach((un, index) => {
+				let child = new twaver.ShapeNode();
+				child.setName(this._id + "-" + index + ":d3-side");
+				let points = new twaver.List();
+				un.forEach((u) => {
+					points.add({
+						x: u[0],
+						y: u[1],
+					});
+				});
+				child.setPoints(points);
+				child.s("vector.fill.color", "rgba(255,102,102,0.1)");
+				child.s("vector.outline.width", 1);
+				child.s("vector.outline.color", "rgba(255,102,102,1.0)");
+				child.s("label.position", "center");
+				child.s("shapenode.closed", true);
+				child.s("body.type", "default");
+				box.add(child);
+				child.setLayerId(1);
+				this.shapes.d3.side.addChild(child);
+				this.group && this.group.addChild(this.shapes.d3.side);
+			});
+		} else {
+			let child = new twaver.ShapeNode();
+			child.setName(this._id + ":d3-side");
+			let points = this._points;
+			child.setPoints(points);
+			child.s("vector.fill.color", "rgba(255,102,102,0.1)");
+			child.s("vector.outline.width", 1);
+			child.s("vector.outline.color", "rgba(255,102,102,1.0)");
+			child.s("label.position", "center");
+			child.s("shapenode.closed", true);
+			child.s("body.type", "default");
+			box.add(child);
+			child.setLayerId(1);
+			this.shapes.d3.side.addChild(child);
+			this.group && this.group.addChild(this.shapes.d3.side);
+		}
+
+		this.shapes.d3.side.toChildren().forEach((child) => {
+			child.setVisible(false);
+		});
+	},
 
 	drawBool(box) {
 		this.drawDifference(box);
@@ -340,7 +823,7 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 		}
 		intersect.forEach((un) => {
 			let child = new twaver.ShapeNode();
-			child.setName(this._id + "intersect");
+			child.setName(this._id + "-" + this.neighbor._id + "intersect");
 			let points = new twaver.List();
 			un.forEach((u) => {
 				points.add({
@@ -372,9 +855,9 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 			console.log("no difference!");
 			return;
 		}
-		difference.forEach((un) => {
+		difference.forEach((un, index) => {
 			let child = new twaver.ShapeNode();
-			child.setName(this._id + "difference");
+			child.setName(this._id + "-" + index + "difference");
 			let points = new twaver.List();
 			un.forEach((u) => {
 				points.add({
@@ -491,6 +974,26 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 				child.setVisible(control.draw.intersect);
 			});
 		}
+		if (this.shapes.d2.shape1) {
+			this.shapes.d2.shape1.toChildren().forEach((child) => {
+				child.setVisible(control.shapes["d2-shape1"]);
+			});
+		}
+		if (this.shapes.d3.top) {
+			this.shapes.d3.top.toChildren().forEach((child) => {
+				child.setVisible(control.shapes["d3-top"]);
+			});
+		}
+		if (this.shapes.d3.side) {
+			this.shapes.d3.side.toChildren().forEach((child) => {
+				child.setVisible(control.shapes["d3-side"]);
+			});
+		}
+		if (this.preprocessingNodes["crossEndPoint"]) {
+			this.preprocessingNodes["crossEndPoint"].setVisible(
+				control.preprocessing.visible
+			);
+		}
 	},
 });
 
@@ -500,8 +1003,8 @@ twaver.WallUI = function (network, element) {
 
 twaver.Util.ext(twaver.WallUI, twaver.vector.ShapeNodeUI, {
 	paintBody: function (ctx) {
-		let element = this._element;
-		element.setControl(controlOptions);
+		// let element = this._element;
+		// element.setControl(controlOptions);
 		if (this.curInterval) {
 			clearInterval(this.curInterval);
 		}
