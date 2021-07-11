@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+	<head lang="en">
+		<meta http-equiv="pragma" content="no-cache" charset="UTF-8" />
+		<script type="text/javascript" src="./libs/three.js"></script>
+		<script type="text/javascript" src="./libs/polybool.js"></script>
+		<script type="text/javascript" src="./libs/twaver.js"></script>
+		<script type="text/javascript" src="./libs/dat.gui.min.js"></script>
+		<script type="text/javascript" src="./libs/Vec2.js"></script>
+		<script type="text/javascript" src="./libs/Intersection.js"></script>
+		<script type="text/javascript" src="./datas/crosswall.js"></script>
+		<script type="text/javascript" src="./wall.js"></script>
+		<script>
+			let ControlOptions = function () {
+				this.draw = {
+					union: false,
+					difference: false,
+					differenceRev: false,
+					xor: false,
+					intersect: false,
+				};
+				this.walldatas = {
+					d2: false,
+					d3: false,
+				};
+				this.message = "dat.gui";
+				this.speed = 0.8;
+				this.displayOutline = false;
+				this.button = function () {};
+			};
+
+			let controlOptions = (window.controlOptions = new ControlOptions());
+			var box = (window.box = new twaver.ElementBox());
+			var network = new twaver.vector.Network(box);
+
+			function init() {
+				initNetwork();
+				initGUI();
+				initDataBox();
+			}
+
+			function initNetwork() {
+				network.setMinZoom(0.000001);
+				var view = network.getView();
+				document.body.appendChild(view);
+				network.adjustBounds({
+					x: 0,
+					y: 0,
+					width: 1903,
+					height: 960,
+				});
+				network.setAutoValidateCanvasSize(true);
+				twaver.Styles.setStyle("select.color", "#57ab9a");
+				network.setTransparentSelectionEnable(true);
+				network.setEditInteractions(true);
+				network.getView().addEventListener("mousemove", function (e) {
+					var node = network.getElementAt(e);
+					if (node instanceof twaver.ShapeNode) {
+						network.getView().style.cursor = "pointer";
+					} else {
+						network.getView().style.cursor = "default";
+					}
+				});
+			}
+
+			function initDataBox() {
+				let origindata = crosswall;
+				let wallsdata = origindata.known.walls;
+				wallsdata.forEach((wall, index) => {
+					let data = new twaver.Wall(index, wall);
+					box.add(data);
+					if (data.group) {
+						box.add(data.group);
+					}
+				});
+				_twaver.callLater(function () {
+					network.zoomOverview();
+				});
+
+				let allwalls = box
+					.toDatas((node) => {
+						return node instanceof twaver.Wall;
+					})
+					.toArray();
+				console.log(allwalls);
+
+				allwalls.forEach((walli, idi) => {
+					if (idi !== 1) return;
+					if (idi === 73 || idi === 74 || idi === 112) {
+					} else {
+						let walls = [];
+						allwalls.forEach((wallj, idj) => {
+							if (
+								walli instanceof twaver.Wall &&
+								wallj instanceof twaver.Wall &&
+								idi !== idj
+							) {
+								let intersection = walli.intersection(wallj);
+								if (intersection) {
+									console.log("wall" + idi, "wall" + idj);
+									// walli.boolwall(wallj);
+									!wallj._isbool && walls.push(wallj);
+									walli.addNeighbor(wallj);
+								}
+							}
+						});
+						console.log(walls);
+						walli.boolwalls(walls);
+						walli.drawBool(box);
+						walli.getNeighbors();
+					}
+				});
+			}
+
+			function initGUI() {
+				let gui = new dat.GUI();
+				let drawFolder = gui.addFolder("Draw Control");
+				drawFolder.add(controlOptions.draw, "intersect");
+				drawFolder.add(controlOptions.draw, "difference");
+				drawFolder.add(controlOptions.draw, "differenceRev");
+				drawFolder.add(controlOptions.draw, "union");
+				drawFolder.add(controlOptions.draw, "xor");
+				drawFolder.open();
+
+				let wallFolder = gui.addFolder("Wall Datas");
+				wallFolder.add(controlOptions.walldatas, "d2");
+				wallFolder.add(controlOptions.walldatas, "d3");
+				wallFolder.open();
+			}
+		</script>
+	</head>
+
+	<body onload="init();"></body>
+</html>
