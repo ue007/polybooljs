@@ -11,6 +11,7 @@
 		<script type="text/javascript" src="./datas/crosswall.js"></script>
 		<script type="text/javascript" src="./datas/room.js"></script>
 		<script type="text/javascript" src="./datas/room2.js"></script>
+		<script type="text/javascript" src="./datas/testwall.js"></script>
 		<script type="text/javascript" src="./top.js"></script>
 		<script type="text/javascript" src="./wall.js"></script>
 		<script>
@@ -84,6 +85,8 @@
 				let origindata = crosswall; //  十字相交测试数据
 				// origindata = room; // 整个room图纸测试数据
 				// origindata = room2;
+				origindata = testwall;
+
 				let wallsdata = origindata.known.walls;
 				wallsdata.forEach((wall, index) => {
 					let data = new twaver.Wall(index, wall);
@@ -105,7 +108,7 @@
 					.toArray());
 
 				allwalls.forEach((walli, idi) => {
-					// if (idi !== 11) return;
+					// if (idi !== 0 && idi !== 2 && idi !== 1) return;
 					if (idi === 73 || idi === 74 || idi === 112) {
 						let node = box.getDataById(idi);
 						var alarm = new twaver.Alarm(
@@ -257,12 +260,12 @@
 				};
 				allwalls.forEach((wall) => {
 					let data = {
-						wall_coordinates:[],
-						wall_type:'',
-						is_original_wall:true,
-						need_to_be_dismantled:false,
-						wall_width:0,
-					}
+						wall_coordinates: [],
+						wall_type: "",
+						is_original_wall: true,
+						need_to_be_dismantled: false,
+						wall_width: 0,
+					};
 					wall._obbpoints.forEach((p) => {
 						data.wall_coordinates.push([p.x, p.y]);
 					});
@@ -270,7 +273,7 @@
 					console.log(data);
 					json.wall_list.push(data);
 				});
-				
+
 				console.log(JSON.stringify(json));
 			}
 		</script>
