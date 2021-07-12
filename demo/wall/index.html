@@ -42,6 +42,8 @@
 			let box = (window.box = new twaver.ElementBox());
 			let network = new twaver.vector.Network(box);
 			let wallBox = [];
+			let model = new Map();
+			network.model = model;
 
 			function init() {
 				initNetwork();
@@ -61,7 +63,7 @@
 				});
 				network.setAutoValidateCanvasSize(true);
 				twaver.Styles.setStyle("select.color", "#57ab9a");
-				network.setTransparentSelectionEnable(true);
+				// network.setTransparentSelectionEnable(true);
 				network.setEditInteractions(true);
 				network.getSelectionModel().setFilterFunction((data) => {
 					return !(data instanceof twaver.Wall);
@@ -101,7 +103,7 @@
 					.toArray();
 
 				allwalls.forEach((walli, idi) => {
-					// if (idi !== 1) return;
+					// if (idi !== 9) return;
 					if (idi === 73 || idi === 74 || idi === 112) {
 						let node = box.getDataById(idi);
 						var alarm = new twaver.Alarm(
@@ -118,22 +120,39 @@
 								wallj instanceof twaver.Wall &&
 								idi !== idj
 							) {
-								let intersection = walli.intersection(wallj);
-								if (intersection.status === "Intersection") {
-									console.log(
-										"intersection: " + "wall" + idi,
-										"wall" + idj + intersection.status2
-									);
-									walls.push(wallj);
-									// !walli.isBooled(wallj) && walls.push(wallj);
-								} else {
-									console.log(
-										"intersection: " + "wall" + idi,
-										"wall" + idj + intersection.status
-									);
+								let key = idi + "-" + idj;
+								let key2 = idj + "-" + idi;
+
+								if (!model.get(key) && !model.get(key2)) {
+									let intersection =
+										walli.intersection(wallj);
+									if (
+										intersection.status === "Intersection"
+									) {
+										console.log(
+											"intersection: " + "wall" + idi,
+											"wall" + idj + intersection.status2
+										);
+										walls.push(wallj);
+										// !walli.isBooled(wallj) && walls.push(wallj);
+									} else {
+										console.log(
+											"intersection: " + "wall" + idi,
+											"wall" + idj + intersection.status
+										);
+									}
 								}
+								model.set(key, {
+									wall1: walli,
+									wall2: wallj,
+								});
+								model.set(key2, {
+									wall1: wallj,
+									wall2: walli,
+								});
 							}
 						});
+
 						walli.boolwalls(walls);
 						walli.drawBool(box);
 						walli.generate2DShape();
