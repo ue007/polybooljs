@@ -186,7 +186,7 @@ testwall = {
 	},
 };
 
-// 垂直相交 ok 
+// 矩形Room ok 
 testwall = {
 	known: {
 		walls: [
@@ -221,6 +221,105 @@ testwall = {
 				coordinates: [
 					[371, 32165],
 					[18316, 32165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+		],
+	},
+};
+
+
+// 
+testwall = {
+	known: {
+		walls: [
+			{
+				coordinates: [
+					[371, 12165],
+					[18316, 12165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[371, 12165],
+					[371, 32165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[18316, 12165],
+					[18316, 32165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[371, 32165],
+					[18316, 32165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[371, 22165],
+					[18316, 22165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[2371, 12165],
+					[2371, 22165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[4371, 11165],
+					[4371, 24165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[6371, 16165],
+					[6371, 24165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[8371, 16165],
+					[8371, 34165],
+				],
+				width: 200,
+				type: "normal",
+				code: "Q0101",
+			},
+			{
+				coordinates: [
+					[10371, 11165],
+					[10371, 34165],
 				],
 				width: 200,
 				type: "normal",
