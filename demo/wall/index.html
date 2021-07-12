@@ -10,6 +10,7 @@
 		<script type="text/javascript" src="./libs/Intersection.js"></script>
 		<script type="text/javascript" src="./datas/crosswall.js"></script>
 		<script type="text/javascript" src="./datas/room.js"></script>
+		<script type="text/javascript" src="./datas/room2.js"></script>
 		<script type="text/javascript" src="./top.js"></script>
 		<script type="text/javascript" src="./wall.js"></script>
 		<script>
@@ -57,7 +58,7 @@
 				document.body.appendChild(view);
 				network.adjustBounds({
 					x: 0,
-					y: 0,
+					y: 40,
 					width: 1903,
 					height: 960,
 				});
@@ -82,6 +83,7 @@
 			function initDataBox() {
 				let origindata = crosswall; //  十字相交测试数据
 				// origindata = room; // 整个room图纸测试数据
+				// origindata = room2;
 				let wallsdata = origindata.known.walls;
 				wallsdata.forEach((wall, index) => {
 					let data = new twaver.Wall(index, wall);
@@ -96,14 +98,14 @@
 					network.zoomOverview();
 				});
 
-				let allwalls = box
+				let allwalls = (window.allwalls = box
 					.toDatas((node) => {
 						return node instanceof twaver.Wall;
 					})
-					.toArray();
+					.toArray());
 
 				allwalls.forEach((walli, idi) => {
-					// if (idi !== 9) return;
+					// if (idi !== 11) return;
 					if (idi === 73 || idi === 74 || idi === 112) {
 						let node = box.getDataById(idi);
 						var alarm = new twaver.Alarm(
@@ -243,8 +245,38 @@
 					});
 				wallFolder.open();
 			}
+
+			function Export() {
+				let json = {
+					wall_list: [],
+					arc_wall_list: [],
+					windows_list: [],
+					arc_windows_list: [],
+					door_list: [],
+					column_list: [],
+				};
+				allwalls.forEach((wall) => {
+					let data = {
+						wall_coordinates:[],
+						wall_type:'',
+						is_original_wall:true,
+						need_to_be_dismantled:false,
+						wall_width:0,
+					}
+					wall._obbpoints.forEach((p) => {
+						data.wall_coordinates.push([p.x, p.y]);
+					});
+					data.wall_width = wall.originData.width;
+					console.log(data);
+					json.wall_list.push(data);
+				});
+				
+				console.log(JSON.stringify(json));
+			}
 		</script>
 	</head>
 
-	<body onload="init();"></body>
+	<body onload="init();">
+		<button onclick="Export()">Export</button>
+	</body>
 </html>

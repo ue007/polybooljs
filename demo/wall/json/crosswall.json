@@ -1,0 +1,189 @@
+{
+	"wall_list": [
+		{
+			"wall_coordinates": [
+				[928.8000000000001, 613.25],
+				[928.8000000000001, 603.25],
+				[11.05, 603.25],
+				[11.05, 613.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[18.55, 1243.25],
+				[18.55, 1233.25],
+				[1663.3000000000002, 1233.25],
+				[1663.3000000000002, 1243.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[226.45000000000002, 171.5],
+				[236.45000000000002, 171.5],
+				[236.45000000000002, 1608.25],
+				[226.45000000000002, 1608.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[326.45000000000005, 171.5],
+				[336.45000000000005, 171.5],
+				[336.45000000000005, 603.25],
+				[326.45000000000005, 603.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[426.45000000000005, 171.5],
+				[436.45000000000005, 171.5],
+				[436.45000000000005, 603.25],
+				[426.45000000000005, 603.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[526.45, 171.5],
+				[536.45, 171.5],
+				[536.45, 613.25],
+				[526.45, 613.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[626.45, 171.5],
+				[636.45, 171.5],
+				[636.45, 620],
+				[626.45, 620]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[908.3000000000001, 171.5],
+				[923.3000000000001, 171.5],
+				[923.3000000000001, 603.25],
+				[908.3000000000001, 603.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 300
+		},
+		{
+			"wall_coordinates": [
+				[11.05, 171.5],
+				[26.05, 171.5],
+				[26.05, 603.25],
+				[11.05, 603.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 300
+		},
+		{
+			"wall_coordinates": [
+				[913.8000000000001, 613.25],
+				[928.8000000000001, 613.25],
+				[928.8000000000001, 908.25],
+				[913.8000000000001, 908.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 300
+		},
+		{
+			"wall_coordinates": [
+				[11.05, 613.25],
+				[26.05, 613.25],
+				[26.05, 908.25],
+				[11.05, 908.25]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 300
+		},
+		{
+			"wall_coordinates": [
+				[0, 170.75],
+				[0, 160.75],
+				[1015.8000000000001, 160.75],
+				[1015.8000000000001, 170.75]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[1663.3000000000002, 918.3000000000001],
+				[1663.3000000000002, 908.3000000000001],
+				[0, 908.3000000000001],
+				[0, 918.3000000000001]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 200
+		},
+		{
+			"wall_coordinates": [
+				[-10, 908.3000000000001],
+				[10, 908.3000000000001],
+				[10, 1913.3000000000002],
+				[-10, 1913.3000000000002]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 400
+		},
+		{
+			"wall_coordinates": [
+				[1411.3000000000002, 0],
+				[1431.3000000000002, 0],
+				[1431.3000000000002, 1913.3000000000002],
+				[1411.3000000000002, 1913.3000000000002]
+			],
+			"wall_type": "",
+			"is_original_wall": true,
+			"need_to_be_dismantled": false,
+			"wall_width": 400
+		}
+	],
+	"arc_wall_list": [],
+	"windows_list": [],
+	"arc_windows_list": [],
+	"door_list": [],
+	"column_list": []
+}

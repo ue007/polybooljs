@@ -105,8 +105,8 @@ let crosswall = {
 			},
 			{
 				coordinates: [
-					[0, 3365],
-					[20316, 3365],
+					[0, 3315],
+					[20316, 3315],
 				],
 				width: 200,
 				type: "normal",
@@ -130,6 +130,16 @@ let crosswall = {
 				type: "normal",
 				code: "Q0101",
 			},
+			{
+				coordinates: [
+					[28426, 0],
+					[28426, 38266],
+				],
+				width: 400,
+				type: "normal",
+				code: "Q0101",
+			},
+			
 		],
 	},
 };

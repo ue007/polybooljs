@@ -15,9 +15,7 @@ twaver.Wall = function (id, wall) {
 			side: null,
 		},
 	};
-	this.preprocessingNodes = {
-		crossEndPoint: null,
-	};
+	this.preprocessingNodes = {};
 
 	twaver.Wall.superClass.constructor.call(this, id);
 
@@ -285,21 +283,26 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 					intersection.status2 = "十字外接相交";
 				} else {
 					intersection.status2 = "十字内部相交";
+					if (center2.y < center1.y) {
+						intersection.status2 = "十字内部相交->上方";
+					} else {
+						intersection.status2 = "十字内部相交->下方";
+					}
 				}
 			} else if (isInners.get(0) * isInners.get(1) < 0) {
-				intersection.status2 = "crossEndPoint";
+				intersection.status2 = "十字端点相交";
 				if (center1.x < center2.x && center2.y < center1.y) {
-					intersection.status2 = "crossEndPoint->右侧->上方";
+					intersection.status2 = "十字端点相交->右侧->上方";
 				} else if (center1.x < center2.x && center2.y > center1.y) {
-					intersection.status2 = "crossEndPoint->右侧->下方";
+					intersection.status2 = "十字端点相交->右侧->下方";
 				} else if (center1.x > center2.x && center2.y < center1.y) {
-					intersection.status2 = "crossEndPoint->左侧->上方";
+					intersection.status2 = "十字端点相交->左侧->上方";
 				} else if (center1.x > center2.x && center2.y > center1.y) {
-					intersection.status2 = "crossEndPoint->左侧->下方";
+					intersection.status2 = "十字端点相交->左侧->下方";
 				}
 			}
 
-			if (intersection.status2 === "crossEndPoint->右侧->上方") {
+			if (intersection.status2 === "十字端点相交->右侧->上方") {
 				obbpoints.forEach((p) => {
 					if (p.x > center1.x) {
 						p.x = unionBounds.x + unionBounds.width;
@@ -316,7 +319,7 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 						}
 					});
 				}
-			} else if (intersection.status2 === "crossEndPoint->右侧->下方") {
+			} else if (intersection.status2 === "十字端点相交->右侧->下方") {
 				obbpoints.forEach((p) => {
 					if (p.x > center1.x) {
 						p.x = unionBounds.x + unionBounds.width;
@@ -330,7 +333,7 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 						}
 					});
 				}
-			} else if (intersection.status2 === "crossEndPoint->左侧->上方") {
+			} else if (intersection.status2 === "十字端点相交->左侧->上方") {
 				// 需要考虑精度问题
 				obbpoints.forEach((p) => {
 					if (p.x < center1.x) {
@@ -348,7 +351,7 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 						}
 					});
 				}
-			} else if (intersection.status2 === "crossEndPoint->左侧->下方") {
+			} else if (intersection.status2 === "十字端点相交->左侧->下方") {
 				// 需要考虑精度问题
 				obbpoints.forEach((p) => {
 					if (p.x < center1.x) {
@@ -364,45 +367,41 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 					});
 				}
 			} else if (intersection.status2 === "十字内部相交->左侧") {
+			} else if (intersection.status2 === "十字内部相交->上方") {
+				obbpoints2.forEach((p) => {
+					if (p.y > center2.y) {
+						p.y = bounds1.y;
+					}
+				});
+			} else if (intersection.status2 === "十字内部相交->下方") {
+				obbpoints2.forEach((p) => {
+					if (p.y < center2.y) {
+						p.y = bounds1.y;
+					}
+				});
 			}
 
 			/** debug */
 			if (!this.preprocessingNodes["crossIntersection"]) {
-				this.preprocessingNodes["crossIntersection"] =
-					new twaver.ShapeNode();
-				this.preprocessingNodes["crossIntersection"].setName(
-					this._id + ":preprocessing"
-				);
+				let crossIntersection = (this.preprocessingNodes[
+					"crossIntersection"
+				] = new twaver.ShapeNode());
+				crossIntersection.setName(this._id + ":preprocessing");
 				let list = new twaver.List();
 				list.addAll(obbpoints);
-				this.preprocessingNodes["crossIntersection"].setPoints(list);
-				this.preprocessingNodes["crossIntersection"].s(
-					"vector.fill.color",
-					"rgba(255,153,0,0.1)"
-				);
-				this.preprocessingNodes["crossIntersection"].s(
-					"vector.outline.width",
-					1
-				);
-				this.preprocessingNodes["crossIntersection"].s(
+				crossIntersection.setPoints(list);
+				crossIntersection.s("vector.fill.color", "rgba(255,153,0,0.1)");
+				crossIntersection.s("vector.outline.width", 1);
+				crossIntersection.s(
 					"vector.outline.color",
 					"rgba(255,153,0,1.0)"
 				);
-				this.preprocessingNodes["crossIntersection"].s(
-					"label.position",
-					"top"
-				);
-				this.preprocessingNodes["crossIntersection"].s(
-					"shapenode.closed",
-					true
-				);
-				this.preprocessingNodes["crossIntersection"].s(
-					"body.type",
-					"default"
-				);
-				this.preprocessingNodes["crossIntersection"].setVisible(false);
-				this.preprocessingNodes["crossIntersection"].setLayerId(2);
-				box.add(this.preprocessingNodes["crossIntersection"]);
+				crossIntersection.s("label.position", "top");
+				crossIntersection.s("shapenode.closed", true);
+				crossIntersection.s("body.type", "default");
+				crossIntersection.setVisible(false);
+				crossIntersection.setLayerId(2);
+				box.add(crossIntersection);
 			} else {
 				let points =
 					this.preprocessingNodes["crossIntersection"].getPoints();
@@ -447,7 +446,9 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 				);
 				let list = new twaver.List();
 				list.addAll(obbpoints2);
-				neighbor.preprocessingNodes["crossIntersection"].setPoints(list);
+				neighbor.preprocessingNodes["crossIntersection"].setPoints(
+					list
+				);
 				neighbor.preprocessingNodes["crossIntersection"].s(
 					"vector.fill.color",
 					"rgba(102, 204,153 ,0.1)"
@@ -472,12 +473,16 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 					"body.type",
 					"default"
 				);
-				neighbor.preprocessingNodes["crossIntersection"].setVisible(false);
+				neighbor.preprocessingNodes["crossIntersection"].setVisible(
+					false
+				);
 				neighbor.preprocessingNodes["crossIntersection"].setLayerId(2);
 				box.add(neighbor.preprocessingNodes["crossIntersection"]);
 			} else {
 				let points =
-					neighbor.preprocessingNodes["crossIntersection"].getPoints();
+					neighbor.preprocessingNodes[
+						"crossIntersection"
+					].getPoints();
 				let poly1 = {
 					regions: [],
 					inverted: false,
@@ -548,35 +553,6 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 				this.preprocessingNodes["crossIntersection"].setVisible(false);
 				this.preprocessingNodes["crossIntersection"].setLayerId(2);
 				box.add(this.preprocessingNodes["crossIntersection"]);
-			} else {
-				// let points =
-				// 	this.preprocessingNodes["crossIntersection"].getPoints();
-				// let poly1 = {
-				// 	regions: [],
-				// 	inverted: false,
-				// 	id: this._id,
-				// };
-				// let regions = [];
-				// points.forEach((obb) => {
-				// 	regions.push([obb.x, obb.y]);
-				// });
-				// poly1.regions.push(regions);
-				// let poly2 = {
-				// 	regions: [],
-				// 	inverted: false,
-				// 	id: this._id,
-				// };
-				// let regions2 = [];
-				// obbpoints.forEach((obb) => {
-				// 	regions2.push([obb.x, obb.y]);
-				// });
-				// poly2.regions.push(regions2);
-				// let result = PolyBool.union(poly1, poly2);
-				// let ppp = new twaver.List();
-				// result.regions[0].forEach((r) => {
-				// 	ppp.add({ x: r[0], y: r[1] });
-				// });
-				// this.preprocessingNodes["crossIntersection"].setPoints(ppp);
 			}
 			this._obbpoints =
 				this.preprocessingNodes["crossIntersection"].getPoints();
@@ -622,35 +598,6 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 				);
 				neighbor.preprocessingNodes["crossIntersection"].setLayerId(2);
 				box.add(neighbor.preprocessingNodes["crossIntersection"]);
-			} else {
-				// let points =
-				// 	neighbor.preprocessingNodes["crossIntersection"].getPoints();
-				// let poly1 = {
-				// 	regions: [],
-				// 	inverted: false,
-				// 	id: neighbor._id,
-				// };
-				// let regions = [];
-				// points.forEach((obb) => {
-				// 	regions.push([obb.x, obb.y]);
-				// });
-				// poly1.regions.push(regions);
-				// let poly2 = {
-				// 	regions: [],
-				// 	inverted: false,
-				// 	id: neighbor._id,
-				// };
-				// let regions2 = [];
-				// obbpoints.forEach((obb) => {
-				// 	regions2.push([obb.x, obb.y]);
-				// });
-				// poly2.regions.push(regions2);
-				// let result = PolyBool.union(poly1, poly2);
-				// let ppp = new twaver.List();
-				// result.regions[0].forEach((r) => {
-				// 	ppp.add({ x: r[0], y: r[1] });
-				// });
-				// neighbor.preprocessingNodes["crossIntersection"].setPoints(ppp);
 			}
 			neighbor._obbpoints =
 				neighbor.preprocessingNodes["crossIntersection"].getPoints();
@@ -1041,10 +988,7 @@ twaver.Util.ext(twaver.Wall, twaver.ShapeNode, {
 				child.setName(this._id + "-" + this.neighbor._id + "intersect");
 			} else {
 				child.setName(
-					this._id +
-						"-" +
-						neighbors.length +
-						+"多个邻居intersect"
+					this._id + "-" + neighbors.length + +"多个邻居intersect"
 				);
 			}
 
